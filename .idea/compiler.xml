@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true">
+        <processorPath useClasspath="false" useProcessorModulePath="true">
+          <entry name="$PROJECT_DIR$/AnnotationProcessing/target/AnnotationProcessing-1.0-SNAPSHOT.jar" />
+        </processorPath>
+      </profile>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="AnnotationProcessing" />
+        <module name="AnnotationClient" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="AnnotationClient" target="16" />
+      <module name="AnnotationProcessing" target="16" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

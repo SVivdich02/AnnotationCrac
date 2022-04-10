@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/AnnotationClient/AnnotationClient.iml" filepath="$PROJECT_DIR$/AnnotationClient/AnnotationClient.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AnnotationCrac.iml" filepath="$PROJECT_DIR$/AnnotationCrac.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AnnotationProcessing/AnnotationProcessing.iml" filepath="$PROJECT_DIR$/AnnotationProcessing/AnnotationProcessing.iml" />
+    </modules>
+  </component>
+</project>
