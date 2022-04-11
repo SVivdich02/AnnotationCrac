@@ -30,43 +30,25 @@ public class BuilderProcessor extends AbstractProcessor {
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         for(TypeElement annotation: annotations)
         {
-            /*
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
 
             Map<String, String> methodsMap = new HashMap<>();
             for (Element element : annotatedElements)
             {
-                if (element.getKind().isClass())
-                {
-                    for (Method m : element.getClass().getDeclaredMethods())
-                    {
+                if (element.getKind().isClass()) {
+                    for (Method m : element.getClass().getDeclaredMethods()) {
                         methodsMap.put(m.getName(), "String");
                     }
                 }
-                String className = element.getSimpleName().toString();
-                //String className = ((TypeElement) element.getEnclosingElement()).getQualifiedName().toString();
+                    //String className = element.getSimpleName().toString();
+                    String className = ((TypeElement) element.getEnclosingElement()).getQualifiedName().toString();
+                    //String className = element.getClass().getCanonicalName();
 
-                try {
-                    writeBuilderFile(className, methodsMap);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            */
-
-            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
-            Map<Boolean, List<Element>> annotatedMethods = annotatedElements.stream().
-                    collect(Collectors.partitioningBy(element  -> ((ExecutableType)element.asType()).getParameterTypes().size()==1));
-            List<Element> suitableMethods = annotatedMethods.get(true);
-
-            String className = ((TypeElement) suitableMethods.get(0).getEnclosingElement()).getQualifiedName().toString();
-            Map<String,String> suitableMethodsMap  = suitableMethods.stream()
-                    .collect(Collectors.toMap(method -> method.getSimpleName().toString(),
-                            method -> ((ExecutableType)method.asType()).getParameterTypes().get(0).toString()));
-            try {
-                generateCode(className, suitableMethodsMap);
-            } catch (IOException e) {
-                e.printStackTrace();
+                    try {
+                        generateCode(className, methodsMap);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
             }
         }
         return true;
@@ -114,9 +96,9 @@ public class BuilderProcessor extends AbstractProcessor {
                 out.print("(");
                 out.print(argumentType);
                 out.println(" value) {");
-                out.print("        //super."); // в сгенерированном классе
-                out.print(methodName);         // этого
-                out.println("(value);");       // нет
+                out.print("        //super.");
+                out.print(methodName);
+                out.println("(value);");
                 out.println("       Boolean b = false;");
                 out.println("    }");
                 out.println();

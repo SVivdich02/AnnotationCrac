@@ -4,12 +4,12 @@ import org.example.annotation.processor.Crac;
 import javax.swing.*;
 import java.awt.*;
 
+@Crac
 public class MyButton extends JButton {
     private String text;
     private Color color;
     private Boolean visible;
 
-    @Crac
     public void setText(String text) {
         this.text = text;
     }
