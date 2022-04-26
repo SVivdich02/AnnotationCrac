@@ -3,23 +3,18 @@ import org.example.annotation.processor.Crac;
 
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Method;
 
 @Crac
 public class MyButton extends JButton {
+    MyButton newButton;
     private String text;
-    private Color color;
-    private Boolean visible;
+
+    public MyButton() {
+        super();
+        this.newButton = this;
+    }
 
     public void setText(String text) {
-        this.text = text;
-    }
-
-    public void setColor(Color color) {
-        this.color = color;
-    }
-
-    public void setVisible(Boolean visible)
-    {
-        this.visible = visible;
     }
 }
