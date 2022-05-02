@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.sql.Array;
 import java.util.*;
+import javax.lang.model.element.Name;
 import javax.swing.JButton;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,10 @@ public class BuilderProcessor extends AbstractProcessor {
             for (Element element : annotatedElements)
             {
                 JButton but = new JButton();
+                //String superClassName = element.getSimpleName().toString(); //-- это MyJButton
+                //String superClassName = ((TypeElement)element).getSuperclass().toString().substring(12); //-- это Jbutton
+
+                String className = ((TypeElement) element).getQualifiedName().toString();
 
                 for (Method method : but.getClass().getMethods())
                 {
@@ -58,8 +63,8 @@ public class BuilderProcessor extends AbstractProcessor {
                         returnTypeMap.put(method.getName(), method.getReturnType().getName());
                     }
                 }
-                    String className = ((TypeElement) element).getQualifiedName().toString();
-                    try {
+
+                try {
                         generateCode(className, methodsMap, returnTypeMap);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -91,15 +96,11 @@ public class BuilderProcessor extends AbstractProcessor {
                 out.println();
             }
             out.println();
+            out.println("import java.util.*;");
+            out.println();
             out.print("public class ");
             out.print(generatedSimpleClassName);
             out.println(" extends javax.swing.JButton {");
-            out.println();
-            out.print("    private ");
-            out.print(generatedSimpleClassName);
-            out.print(" object = new ");
-            out.print(generatedSimpleClassName);
-            out.println("();");
             out.println();
 
             out.println("public java.awt.image.VolatileImage createVolatileImage(int value1, int value2, java.awt.ImageCapabilities value3) {\n" +
@@ -112,11 +113,25 @@ public class BuilderProcessor extends AbstractProcessor {
             out.print(" newButton;");
             out.println();
 
+            // конструктор
             out.print("    public ");
             out.print(generatedSimpleClassName);
             out.print("() {");
             out.println("   super();");
+            out.println();
+            out.println("   LinkedHashMap<String, Object> paramValuesMap = new LinkedHashMap<>();");
+            out.println();
+            out.print("GlobalList.list.add(new Operation(");
+            out.print("\"");
+            out.print(generatedSimpleClassName);
+            out.print("\"");
+            out.print(", \"CreateMyButtonGenerated\"");
+            out.print(", paramValuesMap, this));");
+            out.println();
             out.println("this.newButton = this;");
+            //out.println("String a = ");
+            //out.print(name);
+            //out.print(";");
             out.println("}");
 
             out.println();
@@ -163,6 +178,55 @@ public class BuilderProcessor extends AbstractProcessor {
 
                     out.print(") {");
                     out.println();
+
+
+                    // добавление операции в лист
+                    i = 0;
+                    out.println("   LinkedHashMap<String, Object> paramValuesMap = new LinkedHashMap<>();");
+                    out.println();
+                    for (String s : argumentType) {
+                        i++;
+                        if (s.contains("$")) {
+                            s = s.replace("$", ".");
+                        }
+
+                        if (s.contains("bool") || s.contains("int") || s.contains("floa") || s.contains("doubl") || s.contains("cha") || s.contains("long"))
+                        {
+                            out.print("String nameSpecial");
+                            out.print(i);
+                            out.print(" = ");
+                            out.print(s);
+                            out.print(".class.getSimpleName();");
+                            out.print(" paramValuesMap.put(nameSpecial");
+
+                        }
+                        else {
+                            out.print("String name");
+                            out.print(i);
+                            out.print(" = value");
+                            out.print(i);
+                            out.print(".getClass().getSimpleName();");
+                            out.println();
+                            out.print(" paramValuesMap.put(name");
+                        }
+                        out.print(i);
+                        out.print(", (Object) value");
+                        out.print(i);
+                        out.print(");");
+                        out.println();
+                    }
+                    out.println();
+                    out.print("   GlobalList.list.add(new Operation(");
+                    out.print("\"");
+                    out.print(generatedSimpleClassName);
+                    out.print("\"");
+                    out.print(", \"");
+                    out.print(methodName);
+                    out.print("\"");
+                    out.print(", paramValuesMap, this));");
+                    out.println();
+                    // операция добавлена
+
 
                     if (newReturnTypeName != "void") {
                         out.print("   return super.");
