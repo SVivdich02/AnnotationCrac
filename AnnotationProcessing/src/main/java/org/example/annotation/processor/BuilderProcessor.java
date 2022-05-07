@@ -37,38 +37,41 @@ public class BuilderProcessor extends AbstractProcessor {
         {
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
 
-            Map<String, List<String>> methodsMap = new HashMap<>();
-            Map<String, String> returnTypeMap = new HashMap<>();
+            LinkedHashMap<String, LinkedList<String>> methodsMap = new LinkedHashMap<>();
+            LinkedHashMap<String, String> returnTypeMap = new LinkedHashMap<>();
+
             for (Element element : annotatedElements)
             {
-                JButton but = new JButton();
                 //String superClassName = element.getSimpleName().toString(); //-- это MyJButton
-                //String superClassName = ((TypeElement)element).getSuperclass().toString().substring(12); //-- это Jbutton
 
+                String superClassName = ((TypeElement)element).getSuperclass().toString();
                 String className = ((TypeElement) element).getQualifiedName().toString();
-
-                for (Method method : but.getClass().getMethods())
-                {
-                    int classModifiers = method.getModifiers();
-                    boolean isFinal = isModifierSet(classModifiers, Modifier.FINAL);
-                    boolean isStatic = isModifierSet(classModifiers, Modifier.STATIC);
-                    if (!isFinal & !isStatic)
-                    {
-                        List<String> arr = new ArrayList<String>();
-                        for (Class cl : method.getParameterTypes())
-                        {
-                            arr.add(cl.getName());
-                        }
-                        methodsMap.put(method.getName(), arr);
-                        returnTypeMap.put(method.getName(), method.getReturnType().getName());
-                    }
-                }
-
                 try {
+                    Class superClass = Class.forName(superClassName);
+                    for (Method method : superClass.getMethods())
+                    {
+                        int classModifiers = method.getModifiers();
+                        boolean isFinal = isModifierSet(classModifiers, Modifier.FINAL);
+                        boolean isStatic = isModifierSet(classModifiers, Modifier.STATIC);
+                        if (!isFinal & !isStatic) {
+                            LinkedList<String> listParamTypes = new LinkedList<>();
+                            for (Class cls : method.getParameterTypes())
+                            {
+                                listParamTypes.add(cls.getName());
+                            }
+                            methodsMap.put(method.getName(), listParamTypes);
+                            returnTypeMap.put(method.getName(), method.getReturnType().getName());
+                        }
+                    }
+
+                    try {
                         generateCode(className, methodsMap, returnTypeMap);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
         }
         return true;
@@ -78,68 +81,42 @@ public class BuilderProcessor extends AbstractProcessor {
         return (allModifiers & specificModifier) > 0;
     }
 
-    private void generateCode(String className, Map<String, List<String>> suitableMethodsMap, Map<String, String> returnTypeMap) throws IOException {
+    private void generateCode(String className, LinkedHashMap<String, LinkedList<String>> methodsMap, LinkedHashMap<String, String> returnTypeMap) throws IOException, ClassNotFoundException {
         String packageName = null;
         int lastDot = className.lastIndexOf('.');
         if (lastDot > 0) {
             packageName = className.substring(0, lastDot);
         }
-        String simpleClassName = className.substring(lastDot + 1);
         String generatedClassName = className + "Generated";
         String generatedSimpleClassName = generatedClassName.substring(lastDot + 1);
         JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(generatedClassName);
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             if (packageName != null) {
-                out.print("package ");
-                out.print(packageName);
-                out.println(";");
+                out.print("package " + packageName + ";");
                 out.println();
             }
             out.println();
             out.println("import java.util.*;");
             out.println();
-            out.print("public class ");
-            out.print(generatedSimpleClassName);
-            out.println(" extends javax.swing.JButton {");
+            out.print("public class " + generatedSimpleClassName + " extends javax.swing.JButton {");
             out.println();
 
-            out.println("public java.awt.image.VolatileImage createVolatileImage(int value1, int value2, java.awt.ImageCapabilities value3) {\n" +
-                    "        throw new RuntimeException(\"don't call me\");\n" +
-                    "    }");
+            out.println("""
+                    public java.awt.image.VolatileImage createVolatileImage(int value1, int value2, java.awt.ImageCapabilities value3) {
+                        throw new RuntimeException(\"don't call me\");
+                    }
+                    """);
 
             out.println();
-            out.print("    ");
-            out.print(generatedSimpleClassName);
-            out.print(" newButton;");
+            out.print("    " + generatedClassName + " newButton;");
             out.println();
 
-            // конструктор
-            out.print("    public ");
-            out.print(generatedSimpleClassName);
-            out.print("() {");
-            out.println("   super();");
-            out.println();
-            out.println("   LinkedHashMap<String, Object> paramValuesMap = new LinkedHashMap<>();");
-            out.println();
-            out.print("GlobalList.list.add(new Operation(");
-            out.print("\"");
-            out.print(generatedSimpleClassName);
-            out.print("\"");
-            out.print(", \"CreateMyButtonGenerated\"");
-            out.print(", paramValuesMap, this));");
-            out.println();
-            out.println("this.newButton = this;");
-            //out.println("String a = ");
-            //out.print(name);
-            //out.print(";");
-            out.println("}");
+            buildClassConstructor(out, generatedSimpleClassName);
 
-            out.println();
-
-            suitableMethodsMap.entrySet().forEach(method -> {
+            methodsMap.entrySet().forEach(method -> {
                 String methodName = method.getKey();
                 if (methodName != "createVolatileImage") {
-                    List<String> argumentType = method.getValue();
+                    LinkedList<String> argumentType = method.getValue();
                     out.print("    public ");
 
                     String newReturnTypeName = returnTypeMap.get(methodName);
@@ -158,19 +135,15 @@ public class BuilderProcessor extends AbstractProcessor {
                     } else {
                         out.print(newReturnTypeName);
                     }
-                    out.print(" ");
-                    out.print(methodName);
-                    out.print("(");
+                    out.print(" " + methodName + "(");
                     int i = 0;
+
                     for (String s : argumentType) {
                         i++;
                         if (s.contains("$")) {
                             s = s.replace("$", ".");
                         }
-                        out.print(s);
-                        out.print(" ");
-                        out.print("value");
-                        out.print(i);
+                        out.print(s + " value" + i);
                         if (argumentType.size() != i) {
                             out.print(", ");
                         }
@@ -179,54 +152,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     out.print(") {");
                     out.println();
 
-
-                    // добавление операции в лист
-                    i = 0;
-                    out.println("   LinkedHashMap<String, Object> paramValuesMap = new LinkedHashMap<>();");
-                    out.println();
-                    for (String s : argumentType) {
-                        i++;
-                        if (s.contains("$")) {
-                            s = s.replace("$", ".");
-                        }
-
-                        if (s.contains("bool") || s.contains("int") || s.contains("floa") || s.contains("doubl") || s.contains("cha") || s.contains("long"))
-                        {
-                            out.print("String nameSpecial");
-                            out.print(i);
-                            out.print(" = ");
-                            out.print(s);
-                            out.print(".class.getSimpleName();");
-                            out.print(" paramValuesMap.put(nameSpecial");
-
-                        }
-                        else {
-                            out.print("String name");
-                            out.print(i);
-                            out.print(" = value");
-                            out.print(i);
-                            out.print(".getClass().getSimpleName();");
-                            out.println();
-                            out.print(" paramValuesMap.put(name");
-                        }
-                        out.print(i);
-                        out.print(", (Object) value");
-                        out.print(i);
-                        out.print(");");
-                        out.println();
-                    }
-                    out.println();
-                    out.print("   GlobalList.list.add(new Operation(");
-                    out.print("\"");
-                    out.print(generatedSimpleClassName);
-                    out.print("\"");
-                    out.print(", \"");
-                    out.print(methodName);
-                    out.print("\"");
-                    out.print(", paramValuesMap, this));");
-                    out.println();
-                    // операция добавлена
-
+                    addOperationToList(out, argumentType, generatedSimpleClassName, methodName);
 
                     if (newReturnTypeName != "void") {
                         out.print("   return super.");
@@ -238,8 +164,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     int j = 0;
                     for (String s : argumentType) {
                         j++;
-                        out.print("value");
-                        out.print(j);
+                        out.print("value" + j);
                         if (argumentType.size() != j) {
                             out.print(", ");
                         }
@@ -248,10 +173,52 @@ public class BuilderProcessor extends AbstractProcessor {
                     out.println();
                     out.println("   }");
                     out.println();
+                } else {
+                    //
                 }
             });
             out.println("}");
         }
     }
+
+    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedSimpleClassName, String methodName){
+        int i = 0;
+        out.println("   LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();");
+        out.println();
+        for (String s : argumentType) {
+            i++;
+            if (s.contains("$")) {
+                s = s.replace("$", ".");
+            }
+
+            out.print(" paramValuesMap.put(" + s + ".class, (Object) value" + i + ");");
+            out.println();
+        }
+        out.println();
+        out.print("   GlobalList.list.add(new Operation(");
+        out.print("\"" + generatedSimpleClassName + "\", \"" + methodName + "\", paramValuesMap, this.newButton));");
+        out.println();
+    }
+
+    private void buildClassConstructor(PrintWriter out, String generatedSimpleClassName)
+    {
+        out.print(" public ");
+        out.print(generatedSimpleClassName);
+        out.print("""
+                () {
+                    super();
+                    this.newButton = this;
+                    LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
+                    GlobalList.list.add(new Operation(
+                """);
+        out.print("\"" + generatedSimpleClassName + "\", ");
+        out.print("""
+                \"CreateMyButtonGenerated\", paramValuesMap, this.newButton));
+                    }
+                """);
+        out.println();
+    }
 }
+
+
 

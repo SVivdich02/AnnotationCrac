@@ -7,12 +7,12 @@ import java.lang.reflect.Method;
 
 @Crac
 public class MyButton extends JButton {
-    MyButton newButton;
+    JButton newButton;
     private String text;
 
     public MyButton() {
         super();
-        this.newButton = this;
+        this.newButton = new JButton();
     }
 
     public void setText(String text) {
