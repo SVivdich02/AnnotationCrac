@@ -2,28 +2,16 @@ package org.example.annotation.processor;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.sql.Array;
 import java.util.*;
-import javax.lang.model.element.Name;
-import javax.swing.JButton;
-import java.util.stream.Collectors;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
-import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.ExecutableType;
-import javax.lang.model.type.TypeMirror;
-import javax.swing.*;
-import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
 import com.google.auto.service.AutoService;
@@ -37,11 +25,11 @@ public class BuilderProcessor extends AbstractProcessor {
         {
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
 
-            LinkedHashMap<String, LinkedList<String>> methodsMap = new LinkedHashMap<>();
-            LinkedHashMap<String, String> returnTypeMap = new LinkedHashMap<>();
-
             for (Element element : annotatedElements)
             {
+                LinkedHashMap<String, LinkedList<String>> methodsMap = new LinkedHashMap<>();
+                LinkedHashMap<String, String> returnTypeMap = new LinkedHashMap<>();
+
                 //String superClassName = element.getSimpleName().toString(); //-- это MyJButton
 
                 String superClassName = ((TypeElement)element).getSuperclass().toString();
@@ -65,7 +53,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     }
 
                     try {
-                        generateCode(className, methodsMap, returnTypeMap);
+                        generateCode(className, methodsMap, returnTypeMap, superClassName);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -81,7 +69,7 @@ public class BuilderProcessor extends AbstractProcessor {
         return (allModifiers & specificModifier) > 0;
     }
 
-    private void generateCode(String className, LinkedHashMap<String, LinkedList<String>> methodsMap, LinkedHashMap<String, String> returnTypeMap) throws IOException, ClassNotFoundException {
+    private void generateCode(String className, LinkedHashMap<String, LinkedList<String>> methodsMap, LinkedHashMap<String, String> returnTypeMap, String superClassName) throws IOException, ClassNotFoundException {
         String packageName = null;
         int lastDot = className.lastIndexOf('.');
         if (lastDot > 0) {
@@ -98,25 +86,25 @@ public class BuilderProcessor extends AbstractProcessor {
             out.println();
             out.println("import java.util.*;");
             out.println();
-            out.print("public class " + generatedSimpleClassName + " extends javax.swing.JButton {");
+            out.print("public class " + generatedSimpleClassName + " extends javax.swing.");
+            out.print(superClassName.substring(12));
+            out.print(" {");
             out.println();
 
-            out.println("""
-                    public java.awt.image.VolatileImage createVolatileImage(int value1, int value2, java.awt.ImageCapabilities value3) {
-                        throw new RuntimeException(\"don't call me\");
-                    }
-                    """);
-
             out.println();
-            out.print("    " + generatedClassName + " newButton;");
+            out.print("    " + generatedClassName + " new");
+            out.print(superClassName.substring(13) + ";");
             out.println();
 
-            buildClassConstructor(out, generatedSimpleClassName);
+            buildClassConstructor(out, generatedSimpleClassName, superClassName, generatedClassName);
 
             methodsMap.entrySet().forEach(method -> {
                 String methodName = method.getKey();
-                if (methodName != "createVolatileImage") {
+
+                if (methodName != "createVolatileImage" && methodName != "createBufferStrategy") {
                     LinkedList<String> argumentType = method.getValue();
+                    out.println("@Override");
+                    out.println();
                     out.print("    public ");
 
                     String newReturnTypeName = returnTypeMap.get(methodName);
@@ -131,7 +119,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     }
 
                     if (methodName == "getUI") {
-                        out.print("javax.swing.plaf.ButtonUI");
+                        out.print("javax.swing.plaf." + superClassName.substring(13) + "UI");
                     } else {
                         out.print(newReturnTypeName);
                     }
@@ -152,7 +140,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     out.print(") {");
                     out.println();
 
-                    addOperationToList(out, argumentType, generatedSimpleClassName, methodName);
+                    addOperationToList(out, argumentType, generatedClassName, methodName, superClassName);
 
                     if (newReturnTypeName != "void") {
                         out.print("   return super.");
@@ -174,14 +162,25 @@ public class BuilderProcessor extends AbstractProcessor {
                     out.println("   }");
                     out.println();
                 } else {
-                    //
+                    // добавить обработку методов с исключениями
                 }
             });
             out.println("}");
         }
     }
 
-    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedSimpleClassName, String methodName){
+
+    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedClassName, String methodName, String superClassName){
+
+        out.println("""
+                            StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+                            boolean fromSystem = Arrays.stream(stackTraceElements).toList().get(2).getClassName().contains("java.");
+                            boolean fromXSystem = Arrays.stream(stackTraceElements).toList().get(2).getClassName().contains("javax.");
+                            boolean fromSun = Arrays.stream(stackTraceElements).toList().get(2).getClassName().contains("sun");
+                            
+                            if (!fromSystem && !fromXSystem && !fromSun) {
+                            """);
+
         int i = 0;
         out.println("   LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();");
         out.println();
@@ -195,27 +194,28 @@ public class BuilderProcessor extends AbstractProcessor {
             out.println();
         }
         out.println();
+
         out.print("   GlobalList.list.add(new Operation(");
-        out.print("\"" + generatedSimpleClassName + "\", \"" + methodName + "\", paramValuesMap, this.newButton));");
-        out.println();
+        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this.new" + superClassName.substring(13) + "));");
+        out.println("}");
     }
 
-    private void buildClassConstructor(PrintWriter out, String generatedSimpleClassName)
+    private void buildClassConstructor(PrintWriter out, String generatedSimpleClassName, String superClassName, String generatedClassName)
     {
         out.print(" public ");
         out.print(generatedSimpleClassName);
         out.print("""
                 () {
                     super();
-                    this.newButton = this;
-                    LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
-                    GlobalList.list.add(new Operation(
                 """);
-        out.print("\"" + generatedSimpleClassName + "\", ");
+        out.print("this.new" + superClassName.substring(13) + " = this;");
         out.print("""
-                \"CreateMyButtonGenerated\", paramValuesMap, this.newButton));
-                    }
+                    LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
+                    GlobalList.list.add(new Operation(                
                 """);
+        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, ");
+        out.print("this.new" + superClassName.substring(13) + "));");
+        out.println("}");
         out.println();
     }
 }

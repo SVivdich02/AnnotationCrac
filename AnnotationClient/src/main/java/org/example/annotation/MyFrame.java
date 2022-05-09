@@ -6,11 +6,11 @@ import java.awt.*;
 import java.lang.reflect.Method;
 
 @Crac
-public class MyButton extends JButton {
-    JButton newButton;
+public class MyFrame extends JFrame{
+    JFrame newFrame;
 
-    public MyButton() {
+    public MyFrame() {
         super();
-        this.newButton = new JButton();
+        this.newFrame = new JFrame();
     }
 }

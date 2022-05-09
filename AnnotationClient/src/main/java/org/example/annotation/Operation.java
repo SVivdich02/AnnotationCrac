@@ -33,23 +33,41 @@ public class Operation {
     {
         return paramValuesMap;
     }
+    public Object getObj() {
+        return obj;
+    }
 
-    public void run() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void run() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
         Class cls = Class.forName(className);
 
-        if (paramValuesMap.isEmpty()) {
-            Method method = cls.getMethod(methodName);
-            method.invoke(obj);
-        } else {
-            LinkedList<Class> listParameterTypes = new LinkedList<>();
-            listParameterTypes.addAll(paramValuesMap.keySet());
-            Class[] ArrParameterTypes = new Class[paramValuesMap.size()];
+        if (methodName.contains("create")) {
+            Object temp = cls.newInstance();
+            for (int i = 0; i < GlobalList.list.size(); i++)
+            {
+                Operation op = GlobalList.list.get(i);
+                if (op.obj == this.obj)
+                {
+                    op.obj = temp;
+                }
+            }
+            this.obj = temp;
+        }
+        else {
 
-            listParameterTypes.toArray(ArrParameterTypes);
-            Object[] valuesRes = paramValuesMap.values().toArray();
+            if (paramValuesMap.isEmpty()) {
+                Method method = cls.getMethod(methodName);
+                method.invoke(obj);
+            } else {
+                LinkedList<Class> listParameterTypes = new LinkedList<>();
+                listParameterTypes.addAll(paramValuesMap.keySet());
+                Class[] ArrParameterTypes = new Class[paramValuesMap.size()];
 
-            Method method = cls.getMethod(methodName, ArrParameterTypes);
-            method.invoke(obj, valuesRes);
+                listParameterTypes.toArray(ArrParameterTypes);
+                Object[] valuesRes = paramValuesMap.values().toArray();
+
+                Method method = cls.getMethod(methodName, ArrParameterTypes);
+                method.invoke(obj, valuesRes);
+            }
         }
     }
 }
