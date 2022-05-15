@@ -13,7 +13,7 @@ public class GlobalList {
 
         for (int i = 0; i < correctlySize; i++)
         {
-            list.get(i).run();
+            list.get(i).run(correctlySize);
         }
     }
 }

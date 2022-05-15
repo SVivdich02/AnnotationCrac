@@ -37,12 +37,12 @@ public class Operation {
         return obj;
     }
 
-    public void run() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+    public void run(int correctlySize) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
         Class cls = Class.forName(className);
 
-        if (methodName.contains("create")) {
+        if (this.methodName.contains("create")) {
             Object temp = cls.newInstance();
-            for (int i = 0; i < GlobalList.list.size(); i++)
+            for (int i = 0; i < correctlySize; i++)
             {
                 Operation op = GlobalList.list.get(i);
                 if (op.obj == this.obj)
@@ -54,19 +54,19 @@ public class Operation {
         }
         else {
 
-            if (paramValuesMap.isEmpty()) {
-                Method method = cls.getMethod(methodName);
-                method.invoke(obj);
+            if (this.paramValuesMap.isEmpty()) {
+                Method method = cls.getMethod(this.methodName);
+                method.invoke(this.obj);
             } else {
                 LinkedList<Class> listParameterTypes = new LinkedList<>();
-                listParameterTypes.addAll(paramValuesMap.keySet());
-                Class[] ArrParameterTypes = new Class[paramValuesMap.size()];
+                listParameterTypes.addAll(this.paramValuesMap.keySet());
+                Class[] ArrParameterTypes = new Class[this.paramValuesMap.size()];
 
                 listParameterTypes.toArray(ArrParameterTypes);
-                Object[] valuesRes = paramValuesMap.values().toArray();
+                Object[] valuesRes = this.paramValuesMap.values().toArray();
 
-                Method method = cls.getMethod(methodName, ArrParameterTypes);
-                method.invoke(obj, valuesRes);
+                Method method = cls.getMethod(this.methodName, ArrParameterTypes);
+                method.invoke(this.obj, valuesRes);
             }
         }
     }
