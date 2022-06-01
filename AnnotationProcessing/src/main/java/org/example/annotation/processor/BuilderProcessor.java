@@ -41,7 +41,6 @@ public class BuilderProcessor extends AbstractProcessor {
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
-                //String superClassName = element.getSimpleName().toString(); //-- это MyJButton
             }
         }
         return true;
@@ -74,8 +73,9 @@ public class BuilderProcessor extends AbstractProcessor {
         }
         out.println();
 
+        String fieldName = superClassName.substring(13);
         out.print("   GlobalList.list.add(new Operation(");
-        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this));");
+        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this.new" + fieldName + "));");
         out.println("}");
     }
 
@@ -87,12 +87,12 @@ public class BuilderProcessor extends AbstractProcessor {
                 () {
                     super();
                 """);
-        out.print("this.new" + superClassName.substring(13) + " = this;");
+        out.println("this.new" + superClassName.substring(13) + " = this;");
         out.print("""
                     LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
                     GlobalList.list.add(new Operation(                
                 """);
-        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this));");
+        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this.new" + superClassName.substring(13) + "));");
         out.println("}");
         out.println();
     }
@@ -169,38 +169,35 @@ public class BuilderProcessor extends AbstractProcessor {
         boolean isFinal = isModifierSet(classModifiers, Modifier.FINAL);
         boolean isStatic = isModifierSet(classModifiers, Modifier.STATIC);
 
-        if (methodName != "createVolatileImage" && methodName != "createBufferStrategy" && methodName != "setFocusCycleRoot"
-                && methodName != "getFocusCycleRootAncestor" &&methodName != "requestFocus") {
-
-            if (!isFinal && !isStatic) {
-                LinkedList<String> listParamTypes = new LinkedList<>();
-                for (Class cls : method.getParameterTypes()) {
-                    listParamTypes.add(cls.getName());
-                }
-                    out.println("@Override");
-                    out.println();
-                    out.print("    public " + returnType + " " + methodName + "(");
-                    parameterEnumeration(out, listParamTypes, true);
-                    out.print(") {");
-                    out.println();
-
-                    addOperationToList(out, listParamTypes, generatedClassName, methodName, superClassName);
-                    out.println();
-
-                    if (returnType != "void") {
-                        out.print("   return super.");
-                    } else {
-                        out.print("   super.");
-                    }
-                    out.print(methodName + "(");
-                    parameterEnumeration(out, listParamTypes, false);
-                    out.print(");");
-                    out.println();
-                    out.println("   }");
-                    out.println();
+        Class[] exceptions = method.getExceptionTypes();
+        if (!isFinal && !isStatic) {
+            LinkedList<String> listParamTypes = new LinkedList<>();
+            for (Class cls : method.getParameterTypes()) {
+                listParamTypes.add(cls.getName());
             }
-        } else {
-            // обработка исключений
+            out.println("@Override");
+            out.println();
+            out.print("    public " + returnType + " " + methodName + "(");
+            parameterEnumeration(out, listParamTypes, true);
+            out.print(") ");
+            addExceptions(out, exceptions);
+            out.print(" {");
+            out.println();
+
+            addOperationToList(out, listParamTypes, generatedClassName, methodName, superClassName);
+            out.println();
+
+            if (returnType != "void") {
+                out.print("   return super.");
+            } else {
+                out.print("   super.");
+            }
+            out.print(methodName + "(");
+            parameterEnumeration(out, listParamTypes, false);
+            out.print(");");
+            out.println();
+            out.println("   }");
+            out.println();
         }
     }
 
@@ -232,6 +229,20 @@ public class BuilderProcessor extends AbstractProcessor {
 
             if (listParamTypes.size() != i) {
                 out.print(", ");
+            }
+        }
+    }
+
+    private void addExceptions(PrintWriter out, Class[] exceptions) {
+        if (exceptions.length != 0) {
+            out.print("throws ");
+            int i = 0;
+            for (Class exception: exceptions) {
+                i++;
+                out.print(exception.getName());
+                if (i != exceptions.length) {
+                    out.print(", ");
+                }
             }
         }
     }

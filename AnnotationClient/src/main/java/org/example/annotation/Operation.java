@@ -1,6 +1,7 @@
 package org.example.annotation;
 
 import javax.swing.*;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -37,25 +38,20 @@ public class Operation {
         return obj;
     }
 
-    public void run(int correctlySize) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+    public void run() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
         Class cls = Class.forName(className);
 
         if (this.methodName.contains("create")) {
+            System.out.println("newComponent in run(): " + this.obj);
             Object temp = cls.newInstance();
-            for (int i = 0; i < correctlySize; i++)
-            {
-                Operation op = GlobalList.list.get(i);
-                if (op.obj == this.obj)
-                {
-                    op.obj = temp;
-                }
-            }
             this.obj = temp;
+            System.out.println("newComponent in run() after restore: " + this.obj);
         }
         else {
 
             if (this.paramValuesMap.isEmpty()) {
                 Method method = cls.getMethod(this.methodName);
+                System.out.println("method " + this.methodName + " invoke for " + this.obj);
                 method.invoke(this.obj);
             } else {
                 LinkedList<Class> listParameterTypes = new LinkedList<>();
@@ -66,6 +62,7 @@ public class Operation {
                 Object[] valuesRes = this.paramValuesMap.values().toArray();
 
                 Method method = cls.getMethod(this.methodName, ArrParameterTypes);
+                System.out.println("method " + this.methodName + " invoke for " + this.obj);
                 method.invoke(this.obj, valuesRes);
             }
         }
