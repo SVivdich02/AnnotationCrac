@@ -72,10 +72,8 @@ public class BuilderProcessor extends AbstractProcessor {
             out.println();
         }
         out.println();
-
-        String fieldName = superClassName.substring(13);
         out.print("   GlobalList.list.add(new Operation(");
-        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this.new" + fieldName + "));");
+        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this));");
         out.println("}");
     }
 
@@ -87,19 +85,33 @@ public class BuilderProcessor extends AbstractProcessor {
                 () {
                     super();
                 """);
-        out.println("this.new" + superClassName.substring(13) + " = this;");
+        //out.println("this.new" + superClassName.substring(13) + " = (javax.swing.J" + superClassName.substring(13) + ") this;");
+        out.println("this.newObj = this;");
         out.print("""
                     LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
                     GlobalList.list.add(new Operation(                
                 """);
-        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this.new" + superClassName.substring(13) + "));");
+        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this));");
         out.println("}");
         out.println();
     }
 
+    private void addUpdateMethod(PrintWriter out, String fieldType, String fieldName) {
+        /*
+        out.println(" public void update(" + fieldType + " newObj) {");
+        out.print("   " + fieldName + " = newObj;");
+        out.println("}");
+         */
+
+        out.print("""
+                    public void update(java.lang.Object obj) {    
+                    newObj = obj;
+                    }    
+                """);
+    }
+
 
     private void generateClass(String className, String superClassName, Class currentClass) throws IOException {
-        int b = 0;
         HashMap<HashMap<String, LinkedList<String>>, Boolean> addedMethods = new HashMap<>();
         String packageName = null;
         int lastDot = className.lastIndexOf('.');
@@ -108,6 +120,9 @@ public class BuilderProcessor extends AbstractProcessor {
         }
         String generatedClassName = className + "Generated";
         String generatedSimpleClassName = generatedClassName.substring(lastDot + 1);
+        String fieldType = "javax.swing.J" + superClassName.substring(13);
+        String fieldName = "new" + superClassName.substring(13);
+
         JavaFileObject builderFile = processingEnv.getFiler().createSourceFile(generatedClassName);
         try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
             if (packageName != null) {
@@ -117,17 +132,18 @@ public class BuilderProcessor extends AbstractProcessor {
             out.println();
             out.println("import java.util.*;");
             out.println();
-            out.print("public class " + generatedSimpleClassName + " extends javax.swing.");
-            out.print(superClassName.substring(12));
-            out.print(" {");
+            out.print("public class " + generatedSimpleClassName + " extends javax.swing." + superClassName.substring(12));
+            out.print(" implements org.example.annotation.UpdateComponent {");
             out.println();
 
+
             out.println();
-            out.print("    " + generatedClassName + " new");
-            out.print(superClassName.substring(13) + ";");
+            //out.print("    " + fieldType + " " + fieldName + ";");
+            out.print("    java.lang.Object newObj;");
             out.println();
 
             buildClassConstructor(out, generatedSimpleClassName, superClassName, generatedClassName);
+            addUpdateMethod(out, fieldType, fieldName);
 
             while (true) {
                 String currentClassName = currentClass.getName();
