@@ -50,7 +50,7 @@ public class BuilderProcessor extends AbstractProcessor {
         return (allModifiers & specificModifier) > 0;
     }
 
-    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedClassName, String methodName, String superClassName){
+    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedClassName, String methodName){
         out.println("""
                             StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
                             boolean fromSystem = Arrays.stream(stackTraceElements).toList().get(2).getClassName().contains("java.");
@@ -85,7 +85,6 @@ public class BuilderProcessor extends AbstractProcessor {
                 () {
                     super();
                 """);
-        //out.println("this.new" + superClassName.substring(13) + " = (javax.swing.J" + superClassName.substring(13) + ") this;");
         out.println("this.newObj = this;");
         out.print("""
                     LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
@@ -96,13 +95,7 @@ public class BuilderProcessor extends AbstractProcessor {
         out.println();
     }
 
-    private void addUpdateMethod(PrintWriter out, String fieldType, String fieldName) {
-        /*
-        out.println(" public void update(" + fieldType + " newObj) {");
-        out.print("   " + fieldName + " = newObj;");
-        out.println("}");
-         */
-
+    private void addUpdateMethod(PrintWriter out) {
         out.print("""
                     public void update(java.lang.Object obj) {    
                     newObj = obj;
@@ -138,12 +131,11 @@ public class BuilderProcessor extends AbstractProcessor {
 
 
             out.println();
-            //out.print("    " + fieldType + " " + fieldName + ";");
             out.print("    java.lang.Object newObj;");
             out.println();
 
             buildClassConstructor(out, generatedSimpleClassName, superClassName, generatedClassName);
-            addUpdateMethod(out, fieldType, fieldName);
+            addUpdateMethod(out);
 
             while (true) {
                 String currentClassName = currentClass.getName();
@@ -200,7 +192,7 @@ public class BuilderProcessor extends AbstractProcessor {
             out.print(" {");
             out.println();
 
-            addOperationToList(out, listParamTypes, generatedClassName, methodName, superClassName);
+            addOperationToList(out, listParamTypes, generatedClassName, methodName);
             out.println();
 
             if (returnType != "void") {
