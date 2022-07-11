@@ -10,13 +10,15 @@ public class Operation {
     String methodName;
     Object obj;
     LinkedHashMap<Class, Object> paramValuesMap;
+    String fromClass;
 
-    public Operation(String className, String methodName, LinkedHashMap<Class, Object> paramValuesMap, Object obj)
+    public Operation(String className, String methodName, LinkedHashMap<Class, Object> paramValuesMap, Object obj, String fromClass)
     {
         this.className = className;
         this.methodName = methodName;
         this.paramValuesMap = paramValuesMap;
         this.obj = obj;
+        this.fromClass = fromClass;
     }
 
     public String getClassName()
@@ -33,8 +35,14 @@ public class Operation {
     {
         return paramValuesMap;
     }
+
     public Object getObj() {
         return obj;
+    }
+
+    public String getFromClass()
+    {
+        return fromClass;
     }
 
     public void run() throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchFieldException {
@@ -62,7 +70,8 @@ public class Operation {
             Object newObjectFieldValue = newObjectField.get(this.obj);
 
             if (this.paramValuesMap.isEmpty()) {
-                Method method = cls.getMethod(this.methodName);
+                Class fromCls = Class.forName(fromClass);
+                Method method = fromCls.getMethod(this.methodName);
                 System.out.println("method " + this.methodName + " invoke for " + newObjectFieldValue);
                 method.invoke(newObjectFieldValue);
             } else {
@@ -73,7 +82,8 @@ public class Operation {
                 listParameterTypes.toArray(ArrParameterTypes);
                 Object[] valuesRes = this.paramValuesMap.values().toArray();
 
-                Method method = cls.getMethod(this.methodName, ArrParameterTypes);
+                Class fromCls = Class.forName(fromClass);
+                Method method = fromCls.getMethod(this.methodName, ArrParameterTypes);
                 System.out.println("method " + this.methodName + " invoke for " + newObjectFieldValue);
 
                 method.invoke(newObjectFieldValue, valuesRes);

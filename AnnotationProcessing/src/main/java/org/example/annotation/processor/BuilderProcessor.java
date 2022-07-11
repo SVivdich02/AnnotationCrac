@@ -50,7 +50,7 @@ public class BuilderProcessor extends AbstractProcessor {
         return (allModifiers & specificModifier) > 0;
     }
 
-    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedClassName, String methodName){
+    private void addOperationToList(PrintWriter out, LinkedList<String> argumentType, String generatedClassName, String methodName, String currentClassName){
         out.println("""
                             StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
                             boolean fromSystem = Arrays.stream(stackTraceElements).toList().get(2).getClassName().contains("java.");
@@ -72,8 +72,10 @@ public class BuilderProcessor extends AbstractProcessor {
             out.println();
         }
         out.println();
+        System.out.println("from addOpToList before add to global list: " +  currentClassName);
         out.print("   GlobalList.list.add(new Operation(");
-        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this));");
+        out.print("\"" + generatedClassName + "\", \"" + methodName + "\", paramValuesMap, this, " + "\"" + currentClassName + "\"" + "));");
+        System.out.println("from addOpToList after add to global list: " +  currentClassName);
         out.println("}");
     }
 
@@ -90,7 +92,7 @@ public class BuilderProcessor extends AbstractProcessor {
                     LinkedHashMap<Class, Object> paramValuesMap = new LinkedHashMap<>();
                     GlobalList.list.add(new Operation(                
                 """);
-        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this));");
+        out.print("\"" + generatedClassName + "\", \"createMy" + superClassName.substring(13) + "Generated\", paramValuesMap, this, null));");
         out.println("}");
         out.println();
     }
@@ -129,7 +131,6 @@ public class BuilderProcessor extends AbstractProcessor {
             out.print(" implements org.example.annotation.UpdateComponent {");
             out.println();
 
-
             out.println();
             out.print("    java.lang.Object newObj;");
             out.println();
@@ -139,11 +140,12 @@ public class BuilderProcessor extends AbstractProcessor {
 
             while (true) {
                 String currentClassName = currentClass.getName();
+                System.out.println("from generateClass : " + currentClassName);
                 if (currentClassName.contains("Obj")) {
                     break;
                 }
 
-                for (Method method : currentClass.getMethods()) {
+                for (Method method : currentClass.getDeclaredMethods()) {
                     LinkedList<String> listParamTypes = new LinkedList<>();
                     for (Class cls : method.getParameterTypes()) {
                         listParamTypes.add(cls.getName());
@@ -151,34 +153,37 @@ public class BuilderProcessor extends AbstractProcessor {
                     HashMap<String, LinkedList<String>> newMethod = new HashMap<>();
                     newMethod.put(method.getName(), listParamTypes);
                     if (!addedMethods.containsKey(newMethod)) {
-                        generateMethod(method, out, currentClassName, generatedClassName);
+                        System.out.println("from generateClass before generateMethod: " + currentClassName);
+                        generateMethod(method, out, currentClassName, generatedClassName, currentClassName);
+                        System.out.println("from generateClass after generateMethod: " + currentClassName);
                         addedMethods.put(newMethod, true);
                     }
                 }
-                String superClass = currentClass.getSuperclass().getName();
-                Class currentSuperClass = Class.forName(superClass);
-                currentClass = currentSuperClass;
+                currentClass = currentClass.getSuperclass();
             }
             out.println("   }");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
         }
     }
 
-    private void generateMethod(Method method, PrintWriter out, String superClassName, String generatedClassName) {
+    private void generateMethod(Method method, PrintWriter out, String superClassName, String generatedClassName, String currentClassName) {
         String methodName = method.getName();
 
         String returnType = updateReturnTypeName(method.getReturnType().getName());
-        if (methodName == "getUI") {
+        if (methodName == "getUI" && !superClassName.contains("utton")) {
             returnType = "javax.swing.plaf." + superClassName.substring(13) + "UI";
+        }
+
+        if (methodName == "getUI" && superClassName.contains("utton")) {
+            returnType = "javax.swing.plaf.ButtonUI";
         }
 
         int classModifiers = method.getModifiers();
         boolean isFinal = isModifierSet(classModifiers, Modifier.FINAL);
         boolean isStatic = isModifierSet(classModifiers, Modifier.STATIC);
+        boolean isPublic = isModifierSet(classModifiers, Modifier.PUBLIC);
 
         Class[] exceptions = method.getExceptionTypes();
-        if (!isFinal && !isStatic) {
+        if (isPublic && !isFinal && !isStatic) {
             LinkedList<String> listParamTypes = new LinkedList<>();
             for (Class cls : method.getParameterTypes()) {
                 listParamTypes.add(cls.getName());
@@ -192,7 +197,9 @@ public class BuilderProcessor extends AbstractProcessor {
             out.print(" {");
             out.println();
 
-            addOperationToList(out, listParamTypes, generatedClassName, methodName);
+            System.out.println("from generateMethod before addOpToList: " + currentClassName);
+            addOperationToList(out, listParamTypes, generatedClassName, methodName, currentClassName);
+            System.out.println("from generateMethod after addOpToList: " + currentClassName);
             out.println();
 
             if (returnType != "void") {
